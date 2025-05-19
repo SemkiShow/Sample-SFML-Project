@@ -2,7 +2,7 @@
 
 A template for creating a new SFML project
 
-## How to try
+<!-- ## How to try
 
 - Download the latest release
 - Unzip it
@@ -30,4 +30,4 @@ A template for creating a new SFML project
 chmod +x compile.sh
 ./compile.sh
 ./build/bin/main
-```
+``` -->
