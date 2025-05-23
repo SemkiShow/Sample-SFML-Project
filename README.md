@@ -2,7 +2,7 @@
 
 A template for creating a new SFML project
 
-<!-- ## How to try
+<!-- ## How to run
 
 - Download the latest release
 - Unzip it
