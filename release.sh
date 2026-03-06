@@ -1,32 +1,34 @@
 #!/bin/bash
 
 set -e
+shopt -s globstar
+executable_name=Sample-SFML-Project
 
 # Compiling for Linux
-if [ ! -d build ]; then
-    mkdir build
-fi
-cd build
-cmake .. -DCMAKE_BUILD_TYPE=Release
-make
-cd ..
-cp build/bin/main main
+cmake -B build_release -DCMAKE_BUILD_TYPE=Release
+cmake --build build_release -j$(nproc)
+cp build_release/bin/$executable_name .
 
 # Compiling for Windows
-if [ ! -d build_win ]; then
-    mkdir build_win
-fi
-cd build_win
-cmake .. -DCMAKE_BUILD_TYPE=Release --toolchain ../mingw-w64-x86_64.cmake
-make
-cd ..
-cp build_win/bin/main.exe .
+cmake -B build_release_windows -DCMAKE_TOOLCHAIN_FILE=mingw-w64-x86_64.cmake -DCMAKE_BUILD_TYPE=Release
+cmake --build build_release_windows -j$(nproc)
+cp build_release_windows/bin/$executable_name.exe .
 
-# Zipping the build
-./reset_save_files.sh
-zip release.zip main main.exe assets/* LICENSE README.md settings.txt
-rm main main.exe
+# Zip the dependencies
+archive_name=$executable_name-$1
+zip $archive_name.zip LICENSE README.md resources/**
 
-# Creating a GitHub release
-gh release create $1 release.zip
-rm release.zip
+# Create the Linux release
+cp $archive_name.zip $archive_name-linux-x86_64.zip
+zip $archive_name-linux-x86_64.zip $executable_name
+rm $executable_name
+
+# Create the Windows release
+cp $archive_name.zip $archive_name-windows-x86_64.zip
+zip $archive_name-windows-x86_64.zip $executable_name.exe
+rm $executable_name.exe
+
+# Create a GitHub release
+rm $archive_name.zip
+gh release create $1 $archive_name*
+rm $archive_name*

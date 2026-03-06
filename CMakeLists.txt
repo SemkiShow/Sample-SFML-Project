@@ -1,51 +1,42 @@
-cmake_minimum_required(VERSION 3.28)
-project(SampleSFMLProject LANGUAGES CXX)
+cmake_minimum_required(VERSION 3.14)
+project(Sample-SFML-Project)
 
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-include(FetchContent)
-
-set(SFML_VERSION 3.0.0)
-set(IMGUI_VERSION 1.91.1)
-set(IMGUI_SFML_VERSION 3.0)
-
-# It's nice to get stripped-down release zips instead of cloning
-# a repo and checking out a tag
-FetchContent_Declare(
-  SFML
-  URL "https://github.com/SFML/SFML/archive/${SFML_VERSION}.zip"
-)
-
-FetchContent_Declare(
-  imgui
-  URL https://github.com/ocornut/imgui/archive/v${IMGUI_VERSION}.zip
-)
-
-# Or by tag...
-FetchContent_Declare(
-  imgui-sfml
-  URL https://github.com/SFML/imgui-sfml/archive/v${IMGUI_SFML_VERSION}.zip
-)
-
-## finally, let's build
+# Generate compile_commands.json
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 # SFML
-FetchContent_MakeAvailable(sfml)
+set(SFML_BUILD_NETWORK OFF CACHE BOOL "" FORCE)
+add_subdirectory(${CMAKE_SOURCE_DIR}/thirdparty/SFML ${CMAKE_BINARY_DIR}/_deps/SFML-build SYSTEM)
 
-# Dear ImGui
-FetchContent_MakeAvailable(imgui)
+# imgui
+file(GLOB imgui-src
+  ${CMAKE_SOURCE_DIR}/thirdparty/imgui/*.cpp
+  ${CMAKE_SOURCE_DIR}/thirdparty/imgui/misc/cpp/*.cpp
+)
+add_library(imgui ${imgui-src})
+target_include_directories(imgui PUBLIC ${CMAKE_SOURCE_DIR}/thirdparty/imgui)
 
-# ImGui-SFML
-set(IMGUI_DIR ${imgui_SOURCE_DIR})
-set(IMGUI_INCLUDE_DIR ${imgui_SOURCE_DIR})
-option(IMGUI_SFML_FIND_SFML "Use find_package to find SFML" OFF)
-option(IMGUI_SFML_IMGUI_DEMO "Build imgui_demo.cpp" OFF)
-FetchContent_MakeAvailable(imgui-sfml)
+# imgui-sfml
+set(IMGUI_SFML_FIND_SFML OFF CACHE BOOL "" FORCE)
+set(IMGUI_SFML_IMGUI_DEMO OFF CACHE BOOL "" FORCE)
+set(IMGUI_DIR ${CMAKE_SOURCE_DIR}/thirdparty/imgui)
+set(IMGUI_INCLUDE_DIR ${CMAKE_SOURCE_DIR}/thirdparty/imgui)
+add_subdirectory(${CMAKE_SOURCE_DIR}/thirdparty/imgui-sfml ${CMAKE_BINARY_DIR}/_deps/imgui-sfml-build SYSTEM)
 
-file(GLOB SOURCES src/*.cpp)
+file(GLOB_RECURSE SOURCES src/*.cpp)
+add_executable(${PROJECT_NAME} ${SOURCES})
+target_include_directories(${PROJECT_NAME} PRIVATE include/)
+target_compile_options(${PROJECT_NAME} PRIVATE
+    $<$<CXX_COMPILER_ID:MSVC>:/W4>
+    $<$<OR:$<CXX_COMPILER_ID:GNU>,$<CXX_COMPILER_ID:Clang>>:-Wall -Wextra>
+)
+set_target_properties(${PROJECT_NAME} PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
+target_link_libraries(${PROJECT_NAME} PRIVATE SFML::Graphics SFML::Audio ImGui-SFML::ImGui-SFML)
 
-add_executable(main ${SOURCES})
-target_include_directories(main PRIVATE src/include/)
-target_compile_features(main PRIVATE cxx_std_17)
-target_link_libraries(main PRIVATE SFML::Graphics SFML::Audio)
-target_link_libraries(main PUBLIC ImGui-SFML::ImGui-SFML)
+# Disable the console on a Windows release build
+if(WIN32)
+    set_target_properties(${PROJECT_NAME} PROPERTIES WIN32_EXECUTABLE $<CONFIG:Release>)
+endif()

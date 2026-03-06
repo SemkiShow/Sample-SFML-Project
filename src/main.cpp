@@ -1,35 +1,42 @@
-#include <SFML/Graphics.hpp>
-#include "imgui-SFML.h"
-#include "UI.hpp"
+// SPDX-FileCopyrightText: 2026 SemkiShow
+//
+// SPDX-License-Identifier: GPL-3.0-only
+
 #include "Settings.hpp"
+#include "UI.hpp"
+#include "imgui-SFML.h"
+#include <SFML/Graphics.hpp> // IWYU pragma: keep
+#include <iostream>
 
 int main()
 {
-    settings.Load("settings.txt");
+    settings.Load();
 
     // SFML init
-    sf::RenderWindow window(sf::VideoMode({(unsigned int)windowSize[0], (unsigned int)windowSize[1]}), "Sample SFML Project");
+    sf::RenderWindow window(sf::VideoMode({static_cast<unsigned int>(windowSize.x),
+                                           static_cast<unsigned int>(windowSize.y)}),
+                            "Sample-SFML-Project");
     window.setFramerateLimit(0);
-    
-    // ImGUI init
-    (void) ImGui::SFML::Init(window);
+    window.setVerticalSyncEnabled(settings.vsync);
 
-    if (settings.verticalSync)
-        window.setVerticalSyncEnabled(true);
-    else
-        window.setVerticalSyncEnabled(false);
+    // imgui SFML init
+    if (!ImGui::SFML::Init(window))
+    {
+        std::cerr << "Failed to init imgui-sfml!\n";
+        return 1;
+    }
 
     sf::Font font("assets/JetBrainsMonoNerdFont-Medium.ttf");
-    sf::Text FPS(font);
-    FPS.setPosition({0, menuOffset * 1.f});
-    FPS.setString(std::to_string(123));
-    FPS.setFillColor(sf::Color(0, 255, 255));
-    FPS.setCharacterSize(24);
+    sf::Text fpsText(font);
+    fpsText.setPosition({0, menuOffset * 1.f});
+    fpsText.setString(std::to_string(123));
+    fpsText.setFillColor(sf::Color(0, 255, 255));
+    fpsText.setCharacterSize(24);
 
     sf::Clock deltaTimeClock;
     sf::Time deltaTime;
     sf::Clock delayClock;
-    bool lastVSync = settings.verticalSync;
+    bool lastVsync = settings.vsync;
 
     // Main loop
     while (window.isOpen())
@@ -40,35 +47,31 @@ int main()
         while (const auto event = window.pollEvent())
         {
             ImGui::SFML::ProcessEvent(window, *event);
-            if (event->is<sf::Event::Closed>())
-                window.close();
+            if (event->is<sf::Event::Closed>()) window.close();
         }
 
-        ShowMenuBar();
-        if (isSettings) ShowSettings(&isSettings);
+        if (lastVsync != settings.vsync)
+        {
+            lastVsync = settings.vsync;
+            window.setVerticalSyncEnabled(settings.vsync);
+        }
 
         window.clear();
+
+        DrawMenuBar();
+        if (isSettings) DrawSettings(&isSettings);
 
         if (delayClock.getElapsedTime().asSeconds() >= 0.3)
         {
             delayClock.restart();
-            FPS.setString("FPS: " + std::to_string((int)(1 / deltaTime.asSeconds())));
-            
-            if (lastVSync != settings.verticalSync)
-            {
-                lastVSync = settings.verticalSync;
-                if (settings.verticalSync)
-                    window.setVerticalSyncEnabled(true);
-                else
-                    window.setVerticalSyncEnabled(false);
-            }
+            fpsText.setString("FPS: " + std::to_string((int)(1 / deltaTime.asSeconds())));
         }
-        if (settings.showFPS) window.draw(FPS);
+        if (settings.showFPS) window.draw(fpsText);
 
         ImGui::SFML::Render(window);
         window.display();
     }
 
-    settings.Save("settings.txt");
+    settings.Save();
     ImGui::SFML::Shutdown();
 }

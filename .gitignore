@@ -1,5 +1,5 @@
 build*/
-debug/
-.vscode
+.vscode/
+.cache/
 imgui.ini
 settings.txt
