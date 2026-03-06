@@ -14,8 +14,6 @@ git submodule update --init --recursive --depth 1
 
 ## How to run
 
-### Executable
-
 - Download the latest release
 - Unzip it
 - Run Sample-SFML-Project or Sample-SFML-Project.exe depending on your system
